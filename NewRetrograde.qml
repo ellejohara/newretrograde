@@ -82,15 +82,7 @@ MuseScore {
 			
 				// if rest
 				if(pitches === 'REST') {
-					cursor.addNote(60); // write arbitrary note
-					cursor.prev(); // cursor back one element
-					var rest = newElement(Element.REST); // create a rest element
-					
-					// set rest duration to the note duration
-					rest.durationType = cursor.element.durationType;
-					rest.duration = cursor.element.duration;
-					cursor.add(rest); // add the rest
-					cursor.next(); // move cursor forward
+					cursor.addRest () // add rest
 				} else {
 					
 					// if chord
