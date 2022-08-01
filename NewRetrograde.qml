@@ -16,7 +16,7 @@ import MuseScore 3.0
 MuseScore {
 	menuPath: "Plugins.NewRetrograde"
 	description: "Takes a selection of notes and reverses them."
-	version: "1.0"
+	version: "1.1"
 	
 	function retrogradeSelection() {
 		var cursor = curScore.newCursor(); // get the selection
@@ -30,20 +30,20 @@ MuseScore {
 			cursor.rewind(1); // go to the beginning of the selection
 			var startTick = cursor.tick; // mark the selection start tick
 		}
-		//console.log(startTick + ' - ' + endTick); // display selection start and end ticks
 		
-		var noteArray = []; // create a blank array
-		
+		var selectionArray = []; // create a blank array
 		
 		while(cursor.segment && cursor.tick < endTick) { // while in the selection
 			var e = cursor.element; // put current element into variable e
 			if(e) { // if e exists
 				if(e.type == Element.CHORD) { // if e is a note or chord
 					var pitches = []; // put the note pitches of each chord into an array
-					var notes = e.notes;
+					var tones = []; // put tpc values into an array
+					var notes = e.notes; // get all the notes of the chord
 					for(var i = 0; i < notes.length; i++) { // iterate through each note in chord
 						var note = notes[i]; // get the note pitch number
-						pitches.push(note.pitch); // put pitch number into variable
+						pitches.push(note.pitch); // push pitch number into array
+						tones.push(note.tpc); // push tpc value into array
 					}
 				}
 				
@@ -54,55 +54,77 @@ MuseScore {
 				var numer = e.duration.numerator; // numerator of duration
 				var denom = e.duration.denominator; // denominator of duration
 				
-				noteArray.push([pitches, numer, denom]);
+				selectionArray.push([pitches, tones, numer, denom]);
+			} else {
+				console.log('nothing happened');
+				Qt.quit();
 			}
 			cursor.next(); // move to next tick
 		}
 		
-		noteArray.reverse(); // this does the retrograde (reverse array)
+		selectionArray.reverse(); // this does the retrograde (reverse array)
 		cursor.rewind(1); // go back to beginning of selection
 		
 		// this section rewrites the selection with the reversed array
-		for(var i = 0; i < noteArray.length; i++) {
-			var noteDur = noteArray[i];
-			var pitches = noteDur[0]; // get note and chord pitches
-			var numer = noteDur[1]; // duration numerator
-			var denom = noteDur[2]; // duration denominator
+		for(var i = 0; i < selectionArray.length; i++) {
+			var selection = selectionArray[i];
+			var pitches = selection[0]; // get note and chord pitches
+			var tones = selection[1]; // get tpc values
+			var numer = selection[2]; // duration numerator
+			var denom = selection[3]; // duration denominator
 			
 			// set the duration
-			cursor.setDuration(numer, denom);
+			cursor.setDuration(numer, denom); // set duration of note, chord, rest
 			
 			// if there is only a single note
+			/* no longer need single note code as it is handled in the chord code below
 			if(pitches.length == 1) {
-				cursor.addNote(pitches[0]); // add note
-			}
+				cursor.addNote(pitches[0]); // add note and advance cursor
+				// the following is the convoluted way of setting the tpc value of a note
+				cursor.prev(); // rewind the cursor by one element
+				var note = cursor.element.notes[0]; // put the note just created into a new 'note' variable
+				note.pitch = pitches[0]; // reset the pitch just because
+				note.tpc = tones[0]; // set the tpc to get the correct accidental
+				cursor.next(); // advance the cursor by one element
+			}*/
 			
 			// if there is a chord or rest
-			if(pitches.length > 1) {
+			//if(pitches.length > 1) {
 			
-				// if rest
-				if(pitches === 'REST') {
-					cursor.addRest () // add rest
-				} else {
-					
-					// if chord
-					for(var j = 0; j < pitches.length; j++) {
-						var pitch = pitches[j];
-						if(j == 0) { // loop through each pitch of chord
-							// write the root note in a new cursor position
-							cursor.addNote(pitch); // root of chord
-						} else {
-							// write the notes to the same cursor position
-							cursor.addNote(pitch, cursor); // remainder of notes in chord
+			// if rest
+			if(pitches === 'REST') {
+				cursor.addRest () // add rest and advance cursor
+			} else { // if note or chord
+				for(var j = 0; j < pitches.length; j++) {
+					if(j == 0) { // loop through each pitch array
+						cursor.addNote(pitches[0]); // write note with pitch
+						cursor.prev(); // rewind cursor one element
+						var note = cursor.element.notes[0];
+						note.pitch = pitches[0]; // fix pitch
+						note.tpc = tones[0]; // set tpc
+						cursor.next();
+						if(pitches.length > 1) { // if multiple pitches (i.e. a chord)
+							cursor.prev();
+							//console.log(chordNote);
+							for(var k = 1; k < pitches.length; k++) { // loop through remaining pitches
+								var chordNote = newElement(Element.NOTE); // create a new note object
+								chordNote.pitch = pitches[k]; // define the pitch
+								chordNote.tpc = tones[k]; // define the tpc (it will be ignored)
+								var curChord = cursor.element; // get the existing note at the current cursor position
+								curChord.add(chordNote); // add the new note to the chord root note
+								curChord.notes[k].tpc = tones[k]; // set the tpc of the new chord note
+								cursor.next(); // move to the next element
+								
+								//cursor.addNote(pitches[k], cursor); // 'cursor' keeps the cursor in place for adding notes to the chord
+							}
 						}
 					}
 				}
 			}
-			
 		} // end for
 	}
 	
-	
+	// do the thing
 	onRun: {
 		retrogradeSelection();
 		Qt.quit()
