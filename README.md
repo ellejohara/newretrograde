@@ -1,6 +1,6 @@
 # NewRetrograde
 
-## Version 1.1.0
+## Version 2.0
 
 A retrograde plugin for MuseScore 3.x.
 
@@ -10,6 +10,13 @@ Make a selection of notes, chords, and/or rests, on a single staff with a single
 Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
+
+**2.0**
+
+- Completely rewrote the code for the plugin
+- Last measure select bugfix by [elsewhere](https://musescore.org/en/node/333755#comment-1152666)
+- Tuplets now retrograde correctly
+- Multiple voices and staves can now be retrograded
 
 **1.1.0**
 
