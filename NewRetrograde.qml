@@ -84,6 +84,9 @@ MuseScore {
 
         // go through the selection and copy all elements to an object
         for(var trackNum in tracks) {
+            if(cursor.tick == 0) {
+                cursor.rewind(1); // rewind to get additional voices
+            }
             cursor.track = tracks[trackNum]; // set staff index
 
             // begin loop
@@ -175,24 +178,24 @@ MuseScore {
 
             // if a pitch array exists, then write note and tpc data
             if(pitches.length) {
-                for(var pitchLoop = 0; pitchLoop < pitches.length; pitchLoop++) {
-                    // if more than one pitch, write chord
-                    if(pitchLoop > 0 && pitchLoop < pitches.length) {
-                        cursor.prev(); // go back one
-                        cursor.addNote(pitches[pitchLoop], true); // add the additional pitch
-						cursor.prev(); // go back one (again)
-                        cursor.element.notes[pitchLoop].tpc = tpcs[pitchLoop]; // set the tpc
-                        cursor.next();
-                    } else {
-                        // if only one pitch in array, write single note
-                        // weird bug when on voices 2, 3, 4 the cursor advances twice
-                        var noteTick = cursor.tick; // get the tick
-                        cursor.addNote(pitches[pitchLoop]); // write the note
-                        cursor.rewindToTick(noteTick); // rewind to noteTick
-						cursor.element.notes[pitchLoop].tpc = tpcs[pitchLoop]; // set the tpc
-                        cursor.next(); // manually advance cursor
-                    }
+                var noteTick = cursor.tick; // get the tick
+                cursor.addNote(pitches[0]); // write the note
+                var next_time = cursor.tick;
+                cursor.rewindToTick(noteTick); // rewind to noteTick
+                cursor.element.notes[0].tpc = tpcs[0]; // set the tpc
+                var chord = cursor.element;
+
+                for(var pitchLoop = 1; pitchLoop < pitches.length; pitchLoop++) {
+                    var note = newElement(Element.NOTE);					
+                    note.pitch = pitches[pitchLoop];					
+                    note.tpc = tpcs[pitchLoop];					
+                    note.tpc1 = tpcs[pitchLoop];					
+                    note.tpc2 = tpcs[pitchLoop];
+                    chord.add(note);
+                    chord.notes[pitchLoop].tpc = tpcs[pitchLoop];
                 }
+                cursor.rewindToTick(next_time);
+                
             } else { // if no pitch data in array, add rest instead
                 // weird bug when on voices 2, 3, 4 the cursor advances twice
                 var restTick = cursor.tick; // get the tick

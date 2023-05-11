@@ -1,6 +1,6 @@
 # NewRetrograde
 
-## Version 2.0
+## Version 2.1
 
 A retrograde plugin for MuseScore 3.x.
 
@@ -10,6 +10,11 @@ Make a selection of notes, chords, and/or rests, on a single staff with a single
 Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
+
+**2.1**
+
+- Fixed cursor rewind when everything is selected [elsewhere bugfix](https://musescore.org/en/node/333755#comment-1189340)
+- Rewrote how notes and chords are created [elsewhere bugfix](https://musescore.org/en/node/333755#comment-1189404)
 
 **2.0**
 
