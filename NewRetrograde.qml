@@ -10,222 +10,201 @@
 //  the file LICENSE
 //===========================================================================
 
-import QtQuick 2.0
+import QtQuick 2.9
 import MuseScore 3.0
 
 MuseScore {
-    menuPath: "Plugins.NewRetrograde"
-    description: "Takes a selection of notes and reverses them."
-    version: "2.0"
+	menuPath: "Plugins.NewRetrograde"
+	description: "Takes a selection of notes and reverses them."
+	version: "3.0"
+	
+	//** utility functions **//
+	// a more precise cursor positioning function (from the boilerplate)
+	function setCursorToTick(cursor, tick) {
+		cursor.rewind(0);
+		while (cursor.segment) {
+			var curTick = cursor.tick;
+			if (curTick >= tick) return true;
+			cursor.next();
+		}
+		cursor.rewind(0);
+		return false;
+	}
+	
+	// return start and end ticks and staffIdx
+	function startEnd(cursor) {
+		cursor.rewind(2);
+		if(!cursor.segment) return false;
+		var endTick = cursor.tick;
+		if (cursor.tick === 0) endTick = curScore.lastSegment.tick;
+		var lastStaff = cursor.staffIdx;
+		cursor.rewind(1);
+		var startTick = cursor.tick;
+		var firstStaff = cursor.staffIdx;
+		var result = [startTick, endTick, firstStaff, lastStaff];
+		return result;
+	}
+	
+	// return active tracks
+	function activeTracks() {
+		var tracks = [];
+		for (var i = 0; i < curScore.selection.elements.length; i++) {
+			var e = curScore.selection.elements[i];
+			if (i == 0) {
+				tracks.push(e.track);
+				var previousTrack = e.track;
+			}
+			if (i > 0) {
+				if (e.track != previousTrack) {
+					tracks.push(e.track);
+					previousTrack = e.track;
+				}
+			}
+		}
+		return tracks;
+	}
+	
+	//** the retrograde function **//
+	function doTheRetrograde() {
+		// setup
+		var retro = [];
+		var cursor = curScore.newCursor();
+		var waypoints = startEnd(cursor);
+		var startTick = waypoints[0];
+		var endTick = waypoints[1];
+		var firstStaff = waypoints[2];
+		var lastStaff = waypoints[3];
+		var tracks = activeTracks();
+		var tup = 0;
+		
+		// put the selection into the retrograde array
+		for (var voiceNum in tracks) {
+			setCursorToTick(cursor, startTick);
+			cursor.voice = tracks[voiceNum];
+			while (cursor.segment && cursor.tick < endTick) {
+				retro.push(cursor.element);
+				cursor.next();
+			}
+		}
+		
+		// remove existing elements from selection (delete notes)
+		for (var trackNum in tracks) {
+			setCursorToTick(cursor, startTick);
+			cursor.track = tracks[trackNum];
+			while (cursor.segment && cursor.tick < endTick) {
+				var e = cursor.element;
+				if (e.type == Element.CHORD || e.type == Element.NOTE) {
+					if (e.tuplet) {
+						cursor.setDuration(e.tuplet.duration.numerator, e.tuplet.duration.denominator);
+						removeElement(e.tuplet);
+					} else {
+						cursor.setDuration(e.duration.numerator,e.duration.denominator);
+						removeElement(e);
+					}
+                    cursor.next();
+				}
+				if (e.type == Element.REST) cursor.next();
+			}
+		}
+		
+		// do the retrograde
+		retro.reverse();
+		
+		for (var trackNum in tracks) {
+			setCursorToTick(cursor, startTick);
+			cursor.track = tracks[trackNum];
+			var tupReset = 1;
+			for (var i in retro) {
+				if (retro[i].track == tracks[trackNum]) {
+					// first thing to get is the element duration for everything except tuplets
+					if (!(retro[i].tuplet)) { // reject tuplets for now
+						// set the element duration
+						cursor.setDuration(
+							retro[i].duration.numerator,
+							retro[i].duration.denominator
+						);
+						// if the element is a note or chord, add the note
+						if (retro[i].type == Element.CHORD) {
+							cursor.addNote(retro[i].notes[0].pitch); // advances the cursor
+						}
+						// if the element is a rest
+						if (retro[i].type == Element.REST) {
+							cursor.addRest(); // advances the cursor
+						}
+                        cursor.prev(); // go back one
+					}
+				
+					//** SO BEGINS THE TUPLET SECTION **//
+                    // get the tuplet ratio and duration
+					if (retro[i].tuplet) {
+						var numer = retro[i].tuplet.actualNotes;
+						var denom = retro[i].tuplet.normalNotes;
+						var durN = retro[i].tuplet.duration.numerator;
+						var durD = retro[i].tuplet.duration.denominator;
+					}
 
-    function elementObject(track, pitches, tpcs, dur, tupdur, ratio) {
-        this.track = track;
-        this.pitches = pitches;
-        this.tpcs = tpcs;
-        this.dur = dur;
-        this.tupdur = tupdur;
-        this.ratio = ratio;
-    }
+                    // set the duration and add the first note or rest
+					if (retro[i].tuplet && tupReset == 1) {
+						cursor.setDuration(durN, durD);
+						if (retro[i].type == Element.CHORD) {
+							cursor.addNote(retro[i].notes[0].pitch); // advances the cursor
+						}
+						if (retro[i].type == Element.REST) {
+							cursor.addRest(); // advances the cursor
+						}
+                        cursor.prev(); // go back one
+						cursor.addTuplet(fraction(numer, denom), fraction(durN, durD)); // convert to tuplet
+					}
 
-    function activeTracks() {
-        var tracks = [];
-        for(var i = 0; i < curScore.selection.elements.length; i++) {
-            var e = curScore.selection.elements[i];
-            if(i == 0) {
-                tracks.push(e.track);
-                var previousTrack = e.track;
-            }
-            if(i > 0) {
-                if(e.track != previousTrack) {
-                    tracks.push(e.track);
-                    previousTrack = e.track;
-                }
-            }
-        }
-        return tracks;
-    }
+                    // add additional tuplet notes or rests
+					if (retro[i].tuplet && tupReset > 1) {
+						if (retro[i].type == Element.CHORD) {
+							cursor.addNote(retro[i].notes[0].pitch); // advances the cursor
+						}
+						if (retro[i].type == Element.REST) {
+							cursor.addRest(); // advances the cursor
+						}
+                        cursor.prev(); // go back one
+					}
 
-    function doTheRetrograde() {
-        // initialize tick variables
-        var startTick;
-        var endTick;
+                    // update the tuplet counter, or reset when counter equals number of tuplets
+					if (retro[i].tuplet) {
+							if (tupReset == numer) { // numer = tuplet.actualNotes (line 142)
+							tupReset = 1;
+						} else {
+							tupReset++;
+						}
+					}
+					//** SO ENDS THE TUPLET SECTION **//
 
-        // initialize loop object variables
-        var pitches = [];
-        var tpcs = [];
-        var dur = [];
-        var tupdur = [];
-        var ratio = [];
-        var thisElement = []; // the container for chord/note/rest data
-        var theRetrograde = []; // the container for the full selection
-
-        // initialize cursor
-        var cursor = curScore.newCursor();
-
-        // check if a selection exists
-        cursor.rewind(1); // rewind cursor to beginning of selection to avoid last measure bug
-        if(!cursor.segment) {
-            console.log("Nothing Selected");
-            Qt.quit; // if nothing selected, quit
-        }
-
-        // get selection start and end ticks
-        startTick = cursor.tick; // get tick at beginning of selection
-        cursor.rewind(2); // go to end of selection
-        endTick = cursor.tick; // get tick at end of selection
-        if(endTick === 0) { // if last measure selected,
-            endTick = curScore.lastSegment.tick; // get last tick of score instead
-        }
-
-        // get active tracks
-        var tracks = activeTracks();
-
-        cursor.rewind(1); // go to beginning of selection before starting the loop
-
-        // go through the selection and copy all elements to an object
-        for(var trackNum in tracks) {
-            if(cursor.tick == 0) {
-                cursor.rewind(1); // rewind to get additional voices
-            }
-            cursor.track = tracks[trackNum]; // set staff index
-
-            // begin loop
-            while(cursor.segment && cursor.tick < endTick) {
-                var e = cursor.element; // current chord, note, or rest at cursor
-
-                // get note/rest durations first
-                if(e.tuplet) { // tuplets are a special case
-                    tupdur.push(e.tuplet.globalDuration.numerator);
-                    tupdur.push(e.tuplet.globalDuration.denominator);
-                    ratio.push(e.tuplet.actualNotes);
-                    ratio.push(e.tuplet.normalNotes);
-                }
-                dur.push(e.duration.numerator);
-                dur.push(e.duration.denominator);
-
-                // get pitch and tpc data
-                if(e.type == Element.CHORD) {
-                    var notes = e.notes; // get all notes in the chord
-                    for(var noteLoop = 0; noteLoop < notes.length; noteLoop++) {
-                        var note = notes[noteLoop];
-                        pitches.push(note.pitch);
-                        tpcs.push(note.tpc);
+                    // add tpc information to the notes
+                    if (retro[i].type == Element.CHORD) {
+                        cursor.element.tpc = retro[i].notes[0].tpc;
+						cursor.element.tpc1 = retro[i].notes[0].tpc1;
+						cursor.element.tpc2 = retro[i].notes[0].tpc2;
                     }
-                }
-
-                // create a note object with above data
-                thisElement = new elementObject(tracks[trackNum], pitches, tpcs, dur, tupdur, ratio);
-                theRetrograde.push(thisElement); // push note object into selection array
-
-                // reset loop object variables
-                pitches = [];
-                tpcs = [];
-                dur = [];
-                tupdur = [];
-                ratio = [];
-
-                cursor.next(); // advance the cursor (unless you want to get stuck in a while loop)
-            }
-            if(cursor.tick == endTick && trackNum < tracks.length) {
-                cursor.rewind(1); // rewind to get additional voices
-            }
-        }
-
-        // rewind cursor to beginning of selection before clearing
-        cursor.rewind(1);
-
-        // clear selection
-        for(var trackNum in tracks) {
-            cursor.track = tracks[trackNum];
-            while(cursor.segment && cursor.tick < endTick) {
-                var e = cursor.element;
-                if(e.tuplet) {
-                    removeElement(e.tuplet); // you have to specifically remove tuplets
-                } else {
-                    removeElement(e);
-                }
-                cursor.next(); // advance cursor
-            }
-            if(cursor.tick == endTick && trackNum < tracks.length) {
-                cursor.rewind(1); // rewind to get additional voices
-            }
-        }
-
-        cursor.rewind(1); // go to beginning of selection
-        theRetrograde.reverse(); // apply the retrograde by reversing the array
-        var tupReset = 0; // need a reset value defined for consecutive tuplets
-
-        // write the retrograde to the selection
-        for(var i = 0; i < theRetrograde.length; i++) {
-            var curTrack = theRetrograde[i].track; // get the current track
-
-            // if there is a change in staff or voice, rewind the cursor to beginning of selection
-            if(i > 0) { // but don't do it until the second loop
-                if(curTrack != theRetrograde[i-1].track) {
-                    cursor.rewindToTick(startTick);
-                    // rewind(1) doesn't work anymore after clearing the selection
-                    // so use rewindToTick(startTick)
-                }
-            }
-
-            cursor.track = curTrack; // set the current track
-
-            // set the note/rest duration
-            cursor.setDuration(theRetrograde[i].dur[0], theRetrograde[i].dur[1]);
-
-            var pitches = theRetrograde[i].pitches; // get the pitches array
-            var tpcs = theRetrograde[i].tpcs; // get the tpcs array
-
-            // if a pitch array exists, then write note and tpc data
-            if(pitches.length) {
-                var noteTick = cursor.tick; // get the tick
-                cursor.addNote(pitches[0]); // write the note
-                var next_time = cursor.tick;
-                cursor.rewindToTick(noteTick); // rewind to noteTick
-                cursor.element.notes[0].tpc = tpcs[0]; // set the tpc
-                var chord = cursor.element;
-
-                for(var pitchLoop = 1; pitchLoop < pitches.length; pitchLoop++) {
-                    var note = newElement(Element.NOTE);					
-                    note.pitch = pitches[pitchLoop];					
-                    note.tpc = tpcs[pitchLoop];					
-                    note.tpc1 = tpcs[pitchLoop];					
-                    note.tpc2 = tpcs[pitchLoop];
-                    chord.add(note);
-                    chord.notes[pitchLoop].tpc = tpcs[pitchLoop];
-                }
-                cursor.rewindToTick(next_time);
-                
-            } else { // if no pitch data in array, add rest instead
-                // weird bug when on voices 2, 3, 4 the cursor advances twice
-                var restTick = cursor.tick; // get the tick
-                cursor.addRest(); // write the rest
-                cursor.rewindToTick(restTick); // rewind to restTick
-                cursor.next(); // manually advance cursor
-            }
-
-            // if tuplet ratio exists, then go back one and convert note to tuplet
-            if(theRetrograde[i].ratio[0] && tupReset === 0) { // only on the first tuplet element
-                cursor.prev(); // go back one
-                // create the tuplet
-                cursor.addTuplet(
-                    fraction(theRetrograde[i].ratio[0], theRetrograde[i].ratio[1]), // the ratio
-                    fraction(theRetrograde[i].tupdur[0], theRetrograde[i].tupdur[1]) // the duration
-                );
-                cursor.next(); // go forward one
-            }
-
-            // iterate through the tuplet notes and reset counter when done
-            if(theRetrograde[i].ratio[0] && tupReset < theRetrograde[i].ratio[0] - 1) {
-                tupReset++;
-            } else {
-                tupReset = 0;
-            }
-        }
-    }
-
-    onRun: {
-        doTheRetrograde();
-        Qt.quit();
-    }
+				
+					// time to add additional notes and tpcs if it's an actual chord
+					if (retro[i].type == Element.CHORD && retro[i].notes.length > 0) {
+						var chord = retro[i].notes;
+						for (var j = 1; j < chord.length; j++) {
+							var el = newElement(Element.NOTE);
+							el.pitch = retro[i].notes[j].pitch;
+							el.tpc = retro[i].notes[j].tpc;
+							el.tpc1 = retro[i].notes[j].tpc1;
+							el.tpc2 = retro[i].notes[j].tpc2;
+							cursor.add(el);
+						}
+					}
+					cursor.next();
+				}
+			}
+		}
+		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff + 1); // keep selection selected
+	}
+	
+	onRun: {
+		doTheRetrograde();
+		Qt.quit();
+	}
 }
