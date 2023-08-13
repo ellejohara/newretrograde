@@ -11,6 +11,11 @@ Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
 
+**3.0.3**
+
+- Fixed a bug where the plugin wouldn't run if everything was selected via "Select all"
+- Retrograde now writes selection completely in the last measure of the score (use rewindToTick instead of prev)
+
 **3.0.2**
 
 - Notes now get correct TPC values attached to them (again)

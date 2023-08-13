@@ -33,10 +33,11 @@ MuseScore {
 	
 	// return start and end ticks and staffIdx
 	function startEnd(cursor) {
-		cursor.rewind(2);
+		cursor.rewind(1); // set cursor to beginning of selection to avoid the 'select all' last measure bug
 		if(!cursor.segment) return false;
+		cursor.rewind(2);
 		var endTick = cursor.tick;
-		if (cursor.tick === 0) endTick = curScore.lastSegment.tick;
+		if (cursor.tick == 0) endTick = curScore.lastSegment.tick;
 		var lastStaff = cursor.staffIdx;
 		cursor.rewind(1);
 		var startTick = cursor.tick;
@@ -116,6 +117,7 @@ MuseScore {
 			cursor.track = tracks[trackNum];
 			var tupReset = 1;
 			for (var i in retro) {
+				var curTick = cursor.tick; // remember the current tick to rewind to it later instead of using cursor.prev()
 				if (retro[i].track == tracks[trackNum]) {
 					// first thing to get is the element duration for everything except tuplets
 					if (!(retro[i].tuplet)) { // reject tuplets for now
@@ -132,7 +134,7 @@ MuseScore {
 						if (retro[i].type == Element.REST) {
 							cursor.addRest(); // advances the cursor
 						}
-                        cursor.prev(); // go back one
+                        cursor.rewindToTick(curTick); // rewindToTick works if selection includes last measure of score
 					}
 				
 					//** SO BEGINS THE TUPLET SECTION **//
@@ -191,7 +193,7 @@ MuseScore {
 						var chord = retro[i].notes;
 						for (var j = 1; j < chord.length; j++) {
 							cursor.addNote(retro[i].notes[j].pitch, true);
-							cursor.prev();
+							cursor.rewindToTick(curTick); // rewindToTick works if selection includes last measure of score
 							// adding notes[j] to the cursor.element sets the tpc correctly
 							cursor.element.notes[j].tpc = retro[i].notes[j].tpc;
 							cursor.element.notes[j].tpc1 = retro[i].notes[j].tpc1;
