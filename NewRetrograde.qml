@@ -204,7 +204,7 @@ MuseScore {
 				}
 			}
 		}
-		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff + 1); // keep selection selected
+		curScore.selection.selectRange(startTick, endTick + 1, firstStaff, lastStaff + 1); // keep selection selected
 	}
 	
 	onRun: {
