@@ -11,6 +11,11 @@ Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
 
+**3.0.2**
+
+- Notes now get correct TPC values attached to them (again)
+- Fixed a bug where the selection would deselect lower staves after retrograde
+
 **3.0.1**
 
 - Fixed problem selecting and retrograding lower staves

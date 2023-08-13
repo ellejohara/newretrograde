@@ -180,28 +180,29 @@ MuseScore {
 
                     // add tpc information to the notes
                     if (retro[i].type == Element.CHORD) {
-                        cursor.element.tpc = retro[i].notes[0].tpc;
-						cursor.element.tpc1 = retro[i].notes[0].tpc1;
-						cursor.element.tpc2 = retro[i].notes[0].tpc2;
+						// adding notes[0] to the cursor.element sets the tpc correctly
+                        cursor.element.notes[0].tpc = retro[i].notes[0].tpc;
+						cursor.element.notes[0].tpc1 = retro[i].notes[0].tpc1;
+						cursor.element.notes[0].tpc2 = retro[i].notes[0].tpc2;
                     }
 				
 					// time to add additional notes and tpcs if it's an actual chord
 					if (retro[i].type == Element.CHORD && retro[i].notes.length > 0) {
 						var chord = retro[i].notes;
 						for (var j = 1; j < chord.length; j++) {
-							var el = newElement(Element.NOTE);
-							el.pitch = retro[i].notes[j].pitch;
-							el.tpc = retro[i].notes[j].tpc;
-							el.tpc1 = retro[i].notes[j].tpc1;
-							el.tpc2 = retro[i].notes[j].tpc2;
-							cursor.add(el);
+							cursor.addNote(retro[i].notes[j].pitch, true);
+							cursor.prev();
+							// adding notes[j] to the cursor.element sets the tpc correctly
+							cursor.element.notes[j].tpc = retro[i].notes[j].tpc;
+							cursor.element.notes[j].tpc1 = retro[i].notes[j].tpc1;
+							cursor.element.notes[j].tpc2 = retro[i].notes[j].tpc2;
 						}
 					}
 					cursor.next();
 				}
 			}
 		}
-		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff); // keep selection selected
+		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff + 1); // keep selection selected
 	}
 	
 	onRun: {
