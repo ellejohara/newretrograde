@@ -5,11 +5,15 @@
 A retrograde plugin for MuseScore 3.x.
 
 Basic Instructions:
-Make a selection of notes, chords, and/or rests, on a single staff with a single voice, then run NewRetrograde to reverse the selection.
+Make a selection of notes, chords, and/or rests, on one or more staves with one or more voices, then run NewRetrograde to reverse the selection.
 
 Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
+
+**3.0.1**
+
+- Fixed problem selecting and retrograding lower staves
 
 **3.0**
 

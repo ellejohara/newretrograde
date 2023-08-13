@@ -41,6 +41,7 @@ MuseScore {
 		cursor.rewind(1);
 		var startTick = cursor.tick;
 		var firstStaff = cursor.staffIdx;
+		if (firstStaff == lastStaff) lastStaff++; // fix to enable selecting lower staves only
 		var result = [startTick, endTick, firstStaff, lastStaff];
 		return result;
 	}
@@ -78,9 +79,9 @@ MuseScore {
 		var tup = 0;
 		
 		// put the selection into the retrograde array
-		for (var voiceNum in tracks) {
+		for (var trackNum in tracks) {
 			setCursorToTick(cursor, startTick);
-			cursor.voice = tracks[voiceNum];
+			cursor.track = tracks[trackNum];
 			while (cursor.segment && cursor.tick < endTick) {
 				retro.push(cursor.element);
 				cursor.next();
@@ -200,7 +201,7 @@ MuseScore {
 				}
 			}
 		}
-		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff + 1); // keep selection selected
+		curScore.selection.selectRange(startTick, endTick, firstStaff, lastStaff); // keep selection selected
 	}
 	
 	onRun: {
