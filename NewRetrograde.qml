@@ -155,7 +155,7 @@ MuseScore {
 						if (retro[i].type == Element.REST) {
 							cursor.addRest(); // advances the cursor
 						}
-                        cursor.prev(); // go back one
+                        cursor.rewindToTick(curTick); // go back one (correctly with rewindToTick instead of prev)
 						cursor.addTuplet(fraction(numer, denom), fraction(durN, durD)); // convert to tuplet
 					}
 
@@ -167,7 +167,7 @@ MuseScore {
 						if (retro[i].type == Element.REST) {
 							cursor.addRest(); // advances the cursor
 						}
-                        cursor.prev(); // go back one
+                        cursor.rewindToTick(curTick); // go back one (correctly with rewindToTick instead of prev)
 					}
 
                     // update the tuplet counter, or reset when counter equals number of tuplets

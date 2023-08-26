@@ -11,6 +11,10 @@ Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
 
+**3.0.5**
+
+- Fixed a bug that broke the retrograde if the last measure of the score was selected
+
 **3.0.4**
 
 - Last measure before end of score now gets properly re-selected after retrograde
