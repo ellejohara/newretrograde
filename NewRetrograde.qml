@@ -81,8 +81,8 @@ MuseScore {
 		
 		// put the selection into the retrograde array
 		for (var trackNum in tracks) {
+			cursor.track = tracks[trackNum];  // set track first, setting track will reset tick
 			setCursorToTick(cursor, startTick);
-			cursor.track = tracks[trackNum];
 			while (cursor.segment && cursor.tick < endTick) {
 				retro.push(cursor.element);
 				cursor.next();
@@ -91,10 +91,18 @@ MuseScore {
 		
 		// remove existing elements from selection (delete notes)
 		for (var trackNum in tracks) {
+			cursor.track = 0;  // set to track 0 first, setting track will reset tick
 			setCursorToTick(cursor, startTick);
-			cursor.track = tracks[trackNum];
+			cursor.track = tracks[trackNum]; // now set track number
 			while (cursor.segment && cursor.tick < endTick) {
 				var e = cursor.element;
+				if (e == null) { // check if cursor.element is null
+					var meas = cursor.measure; // get the selected measure
+					var durD = meas.timesigActual.denominator; // get the denominator
+					cursor.setDuration(1, durD); // set duration to 1/denominator
+					cursor.addRest(); // add a rest to fill empty voices
+					cursor.next(); // advance the cursor
+				} else // if cursor.element is not null, do this
 				if (e.type == Element.CHORD || e.type == Element.NOTE) {
 					if (e.tuplet) {
 						cursor.setDuration(e.tuplet.duration.numerator, e.tuplet.duration.denominator);
@@ -104,7 +112,7 @@ MuseScore {
 						removeElement(e);
 					}
                     cursor.next();
-				}
+				} else // or do this
 				if (e.type == Element.REST) cursor.next();
 			}
 		}
@@ -113,8 +121,8 @@ MuseScore {
 		retro.reverse();
 		
 		for (var trackNum in tracks) {
+			cursor.track = tracks[trackNum];  // set track first, setting track will reset tick
 			setCursorToTick(cursor, startTick);
-			cursor.track = tracks[trackNum];
 			var tupReset = 1;
 			for (var i in retro) {
 				var curTick = cursor.tick; // remember the current tick to rewind to it later instead of using cursor.prev()
