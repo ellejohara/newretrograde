@@ -96,24 +96,21 @@ MuseScore {
 			cursor.track = tracks[trackNum]; // now set track number
 			while (cursor.segment && cursor.tick < endTick) {
 				var e = cursor.element;
-				if (e == null) { // check if cursor.element is null
+				if (e == null) { // check if cursor.element is null (i.e. unused voices 2, 3, 4)
 					var meas = cursor.measure; // get the selected measure
 					var durD = meas.timesigActual.denominator; // get the denominator
 					cursor.setDuration(1, durD); // set duration to 1/denominator
 					cursor.addRest(); // add a rest to fill empty voices
 					cursor.next(); // advance the cursor
-				} else // if cursor.element is not null, do this
-				if (e.type == Element.CHORD || e.type == Element.NOTE) {
-					if (e.tuplet) {
-						cursor.setDuration(e.tuplet.duration.numerator, e.tuplet.duration.denominator);
-						removeElement(e.tuplet);
-					} else {
-						cursor.setDuration(e.duration.numerator,e.duration.denominator);
-						removeElement(e);
-					}
-                    cursor.next();
-				} else // or do this
-				if (e.type == Element.REST) cursor.next();
+				} else // if cursor.element is not null, remove tuplets and notes/rests individually
+				if (e.tuplet) {
+					//cursor.setDuration(e.tuplet.duration.numerator, e.tuplet.duration.denominator);
+					removeElement(e.tuplet);
+				} else {
+					//cursor.setDuration(e.duration.numerator,e.duration.denominator);
+					removeElement(e);
+				}
+				cursor.next();
 			}
 		}
 		
@@ -183,7 +180,7 @@ MuseScore {
 
                     // update the tuplet counter, or reset when counter equals number of tuplets
 					if (retro[i].tuplet) {
-							if (tupReset == denom) { // denom = tuplet.normalNotes
+							if (tupReset == numer) {
 							tupReset = 1;
 						} else {
 							tupReset++;

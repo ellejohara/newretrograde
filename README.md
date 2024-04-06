@@ -11,6 +11,9 @@ Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
 
+**3.0.8**
+- Tuplets with rests now get removed properly before retrograde
+
 **3.0.7**
 - Fixed a bug that caused tuplets with notes of different durations to retrograde incorrectly
 
