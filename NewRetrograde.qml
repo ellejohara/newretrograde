@@ -167,8 +167,11 @@ MuseScore {
 						cursor.addTuplet(fraction(numer, denom), fraction(durN, durD)); // convert to tuplet
 					}
 
+					// set the duration for each note in the tuplet
+					cursor.setDuration(retro[i].duration.numerator, retro[i].duration.denominator);
+
                     // add additional tuplet notes or rests
-					if (retro[i].tuplet && tupReset > 1) {
+					if (retro[i].tuplet) {
 						if (retro[i].type == Element.CHORD) {
 							cursor.addNote(retro[i].notes[0].pitch); // advances the cursor
 						}
@@ -180,7 +183,7 @@ MuseScore {
 
                     // update the tuplet counter, or reset when counter equals number of tuplets
 					if (retro[i].tuplet) {
-							if (tupReset == numer) { // numer = tuplet.actualNotes (line 142)
+							if (tupReset == denom) { // denom = tuplet.normalNotes
 							tupReset = 1;
 						} else {
 							tupReset++;

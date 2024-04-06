@@ -11,6 +11,9 @@ Tested on MuseScore 3.x in macOS and Windows 10 and it seems to work okay.
 
 ### Changelog
 
+**3.0.7**
+- Fixed a bug that caused tuplets with notes of different durations to retrograde incorrectly
+
 **3.0.6**
 - Can now retrograde correctly when selection has a different number of voices in each measure
 
